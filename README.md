@@ -321,6 +321,161 @@ opencode
 
 ---
 
+## Comandos úteis no dia a dia
+
+Dentro do OpenCode, esses prompts cobrem 80% do trabalho real:
+
+### Planejamento
+
+```
+> Planeje a criação de <recurso>. Considere custo, segurança e rollback.
+> Gere o ADR em docs/adr/
+
+> Preciso migrar <serviço> de <origem> para <destino>. Analise riscos,
+> estime custo e proponha um ADR com implementation guidelines.
+```
+
+### Implementação
+
+```
+> Implemente docs/adr/0001-titulo.md, um passo por vez.
+> Mostre o plan antes de qualquer apply e espere minha confirmação.
+
+> Roda terraform fmt, validate, tflint e checkov neste módulo.
+> Só me mostra se tiver erro.
+
+> Crie o Dockerfile pra esta app .NET 8 seguindo CIS Benchmark.
+> Multi-stage, non-root, healthcheck, pin de versão.
+```
+
+### Validação e review
+
+```
+> @reviewer valide a implementação contra docs/adr/0001-titulo.md
+
+> Audite todos os Dockerfiles do repo. Pra cada um, liste violações
+> de segurança. Não modifique — só relatório.
+
+> /validate-all
+```
+
+### Troubleshooting
+
+```
+> Os pods do deployment X estão em CrashLoopBackOff. Diagnostique:
+> verifique logs, events, describe e me dê a causa raiz.
+
+> O terraform plan está mostrando destroy de um recurso que não deveria.
+> Analise o state e me explique o que está causando.
+```
+
+### Workflow rápido
+
+```
+> /new-adr                    ← cria ADR com numeração automática
+> /validate-all               ← roda todas as validações das skills
+> /onboarding-app             ← onboarding de nova aplicação
+```
+
+---
+
+## Modelos recomendados
+
+### Se você paga (melhor qualidade)
+
+| Agente | Modelo | Por quê |
+|---|---|---|
+| architect | `anthropic/claude-opus-4-5` | Melhor em planejamento e raciocínio longo |
+| devops-engineer | `anthropic/claude-sonnet-4-6` | Rápido, bom em código e IaC |
+| reviewer/suporte | `anthropic/claude-haiku-4-5` | Barato, suficiente pra validação read-only |
+
+### Se você quer free (funciona com trilhos)
+
+| Tier | architect | engineer | reviewer |
+|---|---|---|---|
+| **Zen** | `opencode/kimi-k2.5-free` | `opencode/glm-4.7-flash` | `opencode/glm-4.7-flash` |
+| **OpenRouter** | `openrouter/deepseek/deepseek-r1:free` | `openrouter/qwen/qwen3-coder:free` | `openrouter/meta-llama/llama-3.3-70b-instruct:free` |
+| **Ollama (local)** | `ollama/qwen2.5-coder:32b` | `ollama/qwen2.5-coder:14b` | `ollama/llama3.1:8b` |
+
+> IDs de modelos free mudam com o tempo. Confirme com `/models` no TUI.
+
+### Quando usar o quê
+
+- **Estudo pessoal**: Zen free ou Ollama — zero custo
+- **Código de cliente**: Anthropic/OpenAI direto — zero-retention
+- **100% privado**: Ollama local — nenhuma chamada sai da máquina
+- **Experimentar**: OpenRouter — variedade, mas sem garantia de provedor
+
+---
+
+## Free + ADR: funciona? Por quê?
+
+**Resposta curta: sim, funciona — porque o ADR compensa a fraqueza do modelo.**
+
+Modelos free são piores que frontier models em 3 coisas:
+1. **Contexto longo** — se perdem em tarefas grandes
+2. **Raciocínio multi-step** — pulam passos, alucinam configurações
+3. **Consistência** — cada resposta pode ser diferente da anterior
+
+O workflow ADR + skills foi desenhado exatamente pra neutralizar isso:
+
+### Como os trilhos compensam
+
+| Fraqueza do modelo free | Como o setup compensa |
+|---|---|
+| Se perde em tarefa grande | ADR divide em passos numerados — "implemente o passo 1 e pare" |
+| Alucina configurações | Skills trazem templates com placeholders — o modelo substitui, não inventa |
+| Pula validações | Scripts prontos (`scripts/validate.sh`) rodam fmt/validate/tflint/checkov |
+| Improvisa padrões | AGENTS.md e skills definem naming, portas, tags, policies explicitamente |
+| Faz coisas proibidas | Permissions bloqueiam por config — `destroy: deny`, não por instrução |
+| Perde contexto entre turnos | O ADR é o contexto — está no arquivo, não na memória do modelo |
+
+### Hábitos que mantêm free nos trilhos
+
+1. **Plan mode primeiro** (`Tab`) — só vá pra Build com plano claro
+2. **Um passo por vez** — "implemente o passo 1 e pare" > "implemente tudo"
+3. **Prompts curtos e diretos** — contexto longo satura modelo pequeno
+4. **Use os scripts** — `scripts/validate.sh` pega erros que o modelo não vê
+5. **Tarefa muito complexa?** — aceite que precisa de modelo melhor, ou divida mais
+
+### Por que ADR é o formato ideal pra agentes
+
+O ADR não é burocracia — é **input machine-readable**:
+
+```
+┌─────────────────────────────┐
+│  ADR = contrato entre       │
+│  humano e agente            │
+│                             │
+│  Contexto    → o agente     │
+│                entende o    │
+│                problema     │
+│                             │
+│  Decisão     → o agente     │
+│                sabe o que   │
+│                fazer        │
+│                             │
+│  Guidelines  → o agente     │
+│                sabe COMO    │
+│                fazer, passo │
+│                a passo      │
+│                             │
+│  Critérios   → o agente     │
+│                sabe quando  │
+│                terminou     │
+└─────────────────────────────┘
+```
+
+Sem ADR, você depende do modelo "entender" o que você quer.
+Com ADR, o modelo **lê** o que precisa fazer. É a diferença entre
+"improvise um cluster ECS" e "siga estes 4 passos e valide com estes critérios".
+
+> **Conclusão prática:** modelo free + ADR + skills com trilhos funciona pra
+> 80% das tarefas de infra. Os 20% restantes (arquitetura complexa, decisões
+> com muitas variáveis) pedem um modelo forte no architect — e só nele.
+
+---
+
 ## O que ele instala
 
 | Componente | Condição | O que é |
