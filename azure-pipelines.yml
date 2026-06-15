@@ -1,0 +1,28 @@
+# CI do setup-opencode — setup é código, trata como código
+trigger:
+  branches:
+    include: [main]
+
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - script: |
+      sudo apt-get update -qq
+      sudo apt-get install -y -qq shellcheck jq bats
+    displayName: Instalar dependências
+
+  - script: bash -n setup.sh
+    displayName: Sintaxe (bash -n)
+
+  - script: |
+      shellcheck setup.sh
+      shellcheck templates/skills/*/scripts/*.sh
+    displayName: Lint (shellcheck)
+
+  - script: bats tests/
+    displayName: Testes (bats)

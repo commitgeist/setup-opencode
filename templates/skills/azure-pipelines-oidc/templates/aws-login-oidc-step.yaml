@@ -1,0 +1,46 @@
+# Step template: login AWS via OIDC com role chaining
+# Parâmetros: serviceConnection, entryRoleArn (opcional workloadRoleArn), awsRegion
+parameters:
+  - name: serviceConnection
+    type: string
+  - name: workloadRoleArn
+    type: string
+    default: ''
+  - name: awsRegion
+    type: string
+    default: 'us-east-1'
+
+steps:
+  # 1) Login federado via Service Connection (gera credenciais da role de entrada)
+  - task: AWSShellScript@1
+    displayName: 'OIDC: federar e exportar credenciais'
+    inputs:
+      awsCredentials: ${{ parameters.serviceConnection }}
+      regionName: ${{ parameters.awsRegion }}
+      scriptType: inline
+      inlineScript: |
+        set -euo pipefail
+        if [ -n "${{ parameters.workloadRoleArn }}" ]; then
+          # 2) Role chaining: assume a role do workload
+          CREDS=$(aws sts assume-role \
+            --role-arn "${{ parameters.workloadRoleArn }}" \
+            --role-session-name "azdo-$(Build.BuildId)" \
+            --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+            --output text)
+          read -r AKI SAK ST <<< "$CREDS"
+        else
+          AKI="$AWS_ACCESS_KEY_ID"; SAK="$AWS_SECRET_ACCESS_KEY"; ST="${AWS_SESSION_TOKEN:-}"
+        fi
+        echo "##vso[task.setvariable variable=AWS_ACCESS_KEY_ID;issecret=true]$AKI"
+        echo "##vso[task.setvariable variable=AWS_SECRET_ACCESS_KEY;issecret=true]$SAK"
+        echo "##vso[task.setvariable variable=AWS_SESSION_TOKEN;issecret=true]$ST"
+
+  # 3) Smoke test — daqui em diante, SÓ bash com env: explícito
+  - bash: |
+      aws sts get-caller-identity
+    displayName: 'OIDC: validar identidade'
+    env:
+      AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+      AWS_SESSION_TOKEN: $(AWS_SESSION_TOKEN)
+      AWS_REGION: ${{ parameters.awsRegion }}
