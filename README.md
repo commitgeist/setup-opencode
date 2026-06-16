@@ -1,8 +1,20 @@
 # setup-opencode
 
+> **Especialização**: para quem **opera infraestrutura** — deploy, IaC, pipelines, K8s, GitOps.
+
 Setup padronizado de [OpenCode](https://opencode.ai) para times de DevOps/SRE.
 Um comando instala: agentes com guardrails, skills com scripts e templates,
 commands, ADR workflow e config validada — tudo adaptado à sua stack.
+
+## Qual setup usar?
+
+| Aspecto | **setup-opencode** | setup-opencode-dev | setup-opencode-devtools |
+|---|---|---|---|
+| **Persona** | **DevOps/SRE operando infra** | Dev construindo apps | Dev construindo ferramentas DevOps |
+| **Agentes** | **architect, devops-engineer, reviewer, suporte** | architect, developer, reviewer, tester | architect, developer, reviewer, tester |
+| **Skills** | **terraform, k8s manifests, ECS, pipelines OIDC, postgres** | typescript, python, .NET, react, next.js | python-cli, golang-cli, aws-sdk, k8s-client |
+| **MCPs** | **AWS, Azure DevOps, Terraform, K8s** | GitHub, Context7 | AWS, K8s, GitHub, Context7 |
+| **Foco** | **GitOps, IaC, deploy seguro** | Código limpo, testes, padrões de app | CLI UX, SDK patterns, testabilidade |
 
 ---
 

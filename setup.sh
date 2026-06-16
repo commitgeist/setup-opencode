@@ -379,6 +379,16 @@ if [[ -n "$ADR_DIR" ]]; then
   done
 fi
 
+# CONCEPTS.md — referência: ADR, Runbook, Playbook, Postmortem
+if [[ "$SCOPE" == "local" ]]; then
+  DOCS_DIR="$TARGET/docs"
+  mkdir -p "$DOCS_DIR"
+  if [[ ! -f "$DOCS_DIR/CONCEPTS.md" ]]; then
+    cp "$TPL_DIR/docs/CONCEPTS.md" "$DOCS_DIR/CONCEPTS.md"
+    ok "docs/CONCEPTS.md"
+  fi
+fi
+
 # ═════════════════════════════════════════════════════════
 # 9. GERAR opencode.json — via jq (JSON válido garantido)
 # ═════════════════════════════════════════════════════════
