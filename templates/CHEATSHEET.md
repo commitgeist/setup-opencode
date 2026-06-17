@@ -18,6 +18,30 @@ As configurações são carregadas em camadas:
 
 ---
 
+## Como descobrir IDs de modelos
+
+Os IDs dos modelos mudam com frequência. Se o modelo configurado no agente não
+existir, o OpenCode carrega outro silenciosamente — sem erro visível.
+
+```bash
+# Listar todos os modelos disponíveis
+opencode models
+
+# Filtrar por provider
+opencode models opencode           # Zen (inclui free)
+opencode models huggingface        # Hugging Face
+opencode models openrouter         # OpenRouter
+
+# Com detalhes
+opencode models opencode --verbose
+```
+
+- Modelos free no Zen terminam com `-free` (ex: `opencode/deepseek-v4-flash-free`)
+- Para trocar o modelo de um agente: edite o campo `model:` no frontmatter de `agents/*.md`
+- Para trocar todos de uma vez: rode `./setup.sh` novamente
+
+---
+
 ## Chamando agentes
 
 No chat, use `@nome-do-agente`:

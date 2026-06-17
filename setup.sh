@@ -225,6 +225,26 @@ multiselect DBS "Quais bancos você administra?" "PostgreSQL,MySQL,SQL Server,Ne
 # 3. MODELOS  (com presets FREE — confirme IDs com /models no TUI)
 # ═════════════════════════════════════════════════════════
 echo ""; echo "${YELLOW}--- Modelos ---${NC}"
+
+# ── dica de descoberta de IDs (só no interativo) ──
+if (( ! NON_INTERACTIVE )); then
+  echo "" >&2
+  echo "${CYAN}╭─ Dica: como descobrir IDs de modelos ─────────────────────────────╮${NC}" >&2
+  echo "${CYAN}│${NC}  Os IDs pré-configurados podem estar desatualizados.              ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}  Para listar os IDs reais do seu provider, rode em outro terminal:${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}                                                                   ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}    ${GREEN}opencode models${NC}                 # todos os providers         ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}    ${GREEN}opencode models opencode${NC}         # só Zen (free)              ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}    ${GREEN}opencode models huggingface${NC}      # Hugging Face               ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}    ${GREEN}opencode models openrouter${NC}       # OpenRouter                 ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}    ${GREEN}opencode models opencode --verbose${NC}  # com detalhes             ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}                                                                   ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}  Modelos free no Zen geralmente terminam com ${YELLOW}-free${NC} no ID.       ${CYAN}│${NC}" >&2
+  echo "${CYAN}│${NC}  Copie o ID exato do output (ex: opencode/deepseek-v4-flash-free) ${CYAN}│${NC}" >&2
+  echo "${CYAN}╰───────────────────────────────────────────────────────────────────╯${NC}" >&2
+  echo "" >&2
+fi
+
 MODEL_TIER="$(pick MODEL_TIER "Como você acessa modelos?" "free-zen,free-openrouter,free-ollama,anthropic,openai,custom")"
 
 model_note=""
@@ -760,6 +780,8 @@ echo "  Default:   $default_agent"
 echo "  Skills:    ${installed_skills[*]:-nenhuma}"
 echo "  Commands:  ${installed_commands[*]:-nenhum}"
 echo "  Modelos:   planner=$MODEL_PLANNER | executor=$MODEL_EXECUTOR | reviewer=$MODEL_REVIEWER"
+echo ""
+echo "${YELLOW}Dica:${NC} se o modelo der erro ou carregar outro, confirme os IDs com: ${GREEN}opencode models opencode${NC}"
 echo ""
 echo "${YELLOW}Próximo passo:${NC} leia $COMECE"
 echo ""

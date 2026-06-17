@@ -411,6 +411,45 @@ Dentro do OpenCode, esses prompts cobrem 80% do trabalho real:
 
 > IDs de modelos free mudam com o tempo. Confirme com `/models` no TUI.
 
+### Como descobrir IDs de modelos
+
+O erro mais comum ao configurar o setup é usar um ID de modelo que não existe mais.
+Quando isso acontece, o OpenCode **silenciosamente carrega outro modelo** (geralmente
+o default) — sem mensagem de erro. Você acha que está rodando o modelo X, mas está
+rodando outro.
+
+**Solução: use o comando `opencode models` para listar os IDs reais.**
+
+```bash
+# Listar TODOS os modelos de todos os providers configurados
+opencode models
+
+# Listar só de um provider específico
+opencode models opencode           # Zen (inclui modelos free)
+opencode models huggingface        # Hugging Face
+opencode models openrouter         # OpenRouter (inclui :free)
+opencode models ollama             # Ollama local
+
+# Com detalhes (custo, limites, etc.)
+opencode models opencode --verbose
+```
+
+**Dicas para identificar modelos free no Zen:**
+- Modelos free geralmente terminam com `-free` no ID (ex: `opencode/deepseek-v4-flash-free`)
+- Nem todo modelo listado é free — se não tem `-free` no nome, provavelmente cobra por token
+- Os modelos disponíveis mudam com frequência — sempre confirme antes de configurar
+
+**Depois de descobrir os IDs**, configure nos agentes de duas formas:
+
+```bash
+# Opção 1: rodar o setup de novo (preserva arquivos existentes em .bak)
+./setup.sh
+
+# Opção 2: editar direto o frontmatter dos agentes
+# Abra .opencode/agents/architect.md e troque o campo model:
+#   model: opencode/deepseek-v4-flash-free
+```
+
 ### Quando usar o quê
 
 - **Estudo pessoal**: Zen free ou Ollama — zero custo
