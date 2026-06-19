@@ -214,8 +214,25 @@ fi
 echo ""; echo "${YELLOW}--- IaC ---${NC}"
 IAC="$(pick IAC "Qual IaC?" "Terraform,Pulumi,CloudFormation,Nenhum")"
 
-echo ""; echo "${YELLOW}--- Kubernetes ---${NC}"
-USE_K8S="$(pick USE_K8S "Usa Kubernetes?" "Sim,Não")"
+# backward compat: se answers.env antigo define USE_K8S mas não CONTAINER_ORCH
+if [[ -z "${CONTAINER_ORCH:-}" && -n "${USE_K8S:-}" ]]; then
+  case "$USE_K8S" in
+    Sim) CONTAINER_ORCH="AKS" ;;
+    *)   CONTAINER_ORCH="Nenhum" ;;
+  esac
+fi
+
+echo ""; echo "${YELLOW}--- Container Orchestration ---${NC}"
+CONTAINER_ORCH="$(pick CONTAINER_ORCH "Qual orquestrador de containers?" "AKS,ECS,AKS+ECS,Nenhum")"
+
+# backward compat: derive USE_K8S from CONTAINER_ORCH
+case "$CONTAINER_ORCH" in
+  AKS|AKS+ECS) USE_K8S="Sim" ;;
+  *)            USE_K8S="Não" ;;
+esac
+
+echo ""; echo "${YELLOW}--- References (configs de referência) ---${NC}"
+USE_REFS="$(pick USE_REFS "Criar diretório references/ para configs de referência? (pipeline, manifests, task-def)" "Sim,Não")"
 
 echo ""; echo "${YELLOW}--- Bancos de dados ---${NC}"
 dbs=()
@@ -347,7 +364,10 @@ info "Instalando skills em $SKILLS_DIR ..."
 skills_to_install=()
 if has AWS "${clouds[@]:-}"; then
   [[ "$IAC" == "Terraform" ]] && skills_to_install+=(terraform-aws)
-  skills_to_install+=(ecs-deploy)
+  # ECS skill when container orch includes ECS
+  case "$CONTAINER_ORCH" in
+    ECS|AKS+ECS) skills_to_install+=(ecs-deploy) ;;
+  esac
 fi
 [[ "$USE_K8S" == "Sim" ]] && skills_to_install+=(k8s-manifest-gitops)
 if [[ "$CICD" == "Azure Pipelines" ]] && has AWS "${clouds[@]:-}"; then
@@ -388,6 +408,60 @@ for cmd_file in "$TPL_DIR/commands/"*.md; do
 done
 
 # ═════════════════════════════════════════════════════════
+# 7b. REFERENCES (configs reais como referência de padrão)
+# ═════════════════════════════════════════════════════════
+if [[ "$USE_REFS" == "Sim" ]]; then
+  echo ""
+  info "Criando diretório references/ ..."
+  if [[ "$SCOPE" == "global" ]]; then
+    REFS_DIR="$TARGET/references"
+  else
+    REFS_DIR="$TARGET/.opencode/references"
+  fi
+  mkdir -p "$REFS_DIR"
+
+  # Instalar README guia
+  if [[ -f "$TPL_DIR/references/README.md" ]]; then
+    cp "$TPL_DIR/references/README.md" "$REFS_DIR/README.md"
+  fi
+
+  # Criar subdiretórios baseados no container orch
+  case "$CONTAINER_ORCH" in
+    AKS)
+      mkdir -p "$REFS_DIR/pipeline" "$REFS_DIR/k8s-manifests"
+      ;;
+    ECS)
+      mkdir -p "$REFS_DIR/pipeline" "$REFS_DIR/ecs"
+      ;;
+    AKS+ECS)
+      mkdir -p "$REFS_DIR/pipeline" "$REFS_DIR/k8s-manifests" "$REFS_DIR/ecs"
+      ;;
+  esac
+
+  # Colocar .gitkeep nos dirs vazios
+  find "$REFS_DIR" -type d -empty -exec touch {}/.gitkeep \;
+  ok "references/ criado em $REFS_DIR"
+  ok "Cole seus arquivos reais (pipeline, manifests, task-def) nesse diretório"
+fi
+
+# ═════════════════════════════════════════════════════════
+# 7c. PLUGIN DE VALIDAÇÃO DE NAMING
+# ═════════════════════════════════════════════════════════
+echo ""
+info "Instalando plugin de validação ..."
+if [[ "$SCOPE" == "global" ]]; then
+  PLUGINS_DIR="$TARGET/plugins"
+else
+  PLUGINS_DIR="$TARGET/.opencode/plugins"
+fi
+mkdir -p "$PLUGINS_DIR"
+if [[ -f "$TPL_DIR/plugins/validate-naming.ts" ]]; then
+  backup_if_exists "$PLUGINS_DIR/validate-naming.ts"
+  cp "$TPL_DIR/plugins/validate-naming.ts" "$PLUGINS_DIR/validate-naming.ts"
+  ok "plugin: validate-naming"
+fi
+
+# ═════════════════════════════════════════════════════════
 # 8. DOCS/ADR (apenas escopo local)
 # ═════════════════════════════════════════════════════════
 if [[ -n "$ADR_DIR" ]]; then
@@ -406,6 +480,11 @@ if [[ "$SCOPE" == "local" ]]; then
   if [[ ! -f "$DOCS_DIR/CONCEPTS.md" ]]; then
     cp "$TPL_DIR/docs/CONCEPTS.md" "$DOCS_DIR/CONCEPTS.md"
     ok "docs/CONCEPTS.md"
+  fi
+  # PLUGINS.md — documentação de plugins
+  if [[ -f "$TPL_DIR/docs/PLUGINS.md" ]]; then
+    cp "$TPL_DIR/docs/PLUGINS.md" "$DOCS_DIR/PLUGINS.md"
+    ok "docs/PLUGINS.md"
   fi
 fi
 
@@ -514,6 +593,114 @@ HDR
   printf -- '- architect: `%s`\n' "$MODEL_PLANNER"
   printf -- '- devops-engineer: `%s`\n' "$MODEL_EXECUTOR"
   printf -- '- reviewer/suporte: `%s`\n' "$MODEL_REVIEWER"
+  echo ""
+} >> "$AGENTS_MD"
+
+# ── Naming conventions (dinâmico por container orch) ──
+{
+  echo "## ⛔ Naming Conventions (OBRIGATÓRIO)"
+  echo ""
+  echo "ANTES de criar QUALQUER arquivo, verifique esta tabela. Se o nome não bater: PARE e corrija."
+  echo ""
+  echo "| Tipo | Padrão | Exemplo correto | Exemplo ERRADO |"
+  echo "|---|---|---|---|"
+  case "$CICD" in
+    "Azure Pipelines")
+      echo "| Pipeline Azure DevOps | \`.azure-pipelines.yaml\` na raiz do repo | \`.azure-pipelines.yaml\` | \`azure-pipelines.yml\`, \`pipeline.yaml\` |"
+      ;;
+    "GitHub Actions")
+      echo "| GitHub Actions | \`.github/workflows/<nome>.yml\` | \`.github/workflows/ci.yml\` | \`ci.yaml\`, \`.github/ci.yml\` |"
+      ;;
+    "GitLab CI")
+      echo "| GitLab CI | \`.gitlab-ci.yml\` na raiz | \`.gitlab-ci.yml\` | \`gitlab.yml\`, \`.gitlab-ci.yaml\` |"
+      ;;
+  esac
+  echo "| Dockerfile | \`Dockerfile\` (ou \`Dockerfile.<variante>\`) | \`Dockerfile\`, \`Dockerfile.migrations\` | \`dockerfile\`, \`Dockerfile.prod\` |"
+  echo "| Terraform | \`main.tf\`, \`variables.tf\`, \`outputs.tf\`, \`providers.tf\`, \`backend.tf\` | \`main.tf\` | \`infra.tf\`, \`resources.tf\` |"
+  case "$CONTAINER_ORCH" in
+    AKS|AKS+ECS)
+      echo "| K8s Deployment | \`deployment-<app>.yaml\` | \`deployment-api.yaml\` | \`deploy.yaml\`, \`api-deployment.yml\` |"
+      echo "| K8s Service | \`service-<app>.yaml\` | \`service-api.yaml\` | \`svc.yaml\` |"
+      echo "| K8s Ingress | \`ingress-<app>.yaml\` | \`ingress-api.yaml\` | \`ing.yaml\` |"
+      echo "| K8s HPA | \`hpa-<app>.yaml\` | \`hpa-api.yaml\` | \`autoscaler.yaml\` |"
+      echo "| K8s PDB | \`pdb-<app>.yaml\` | \`pdb-api.yaml\` | \`disruption.yaml\` |"
+      echo "| K8s Namespace | \`namespace-<nome>.yaml\` | \`namespace-production.yaml\` | \`ns.yaml\` |"
+      echo "| K8s ConfigMap | \`configmap-<app>.yaml\` | \`configmap-api.yaml\` | \`cm.yaml\` |"
+      echo "| K8s Secret | \`secret-<app>.yaml\` (SealedSecret) | \`secret-api.yaml\` | \`secrets.yaml\` |"
+      echo "| ArgoCD Application | \`application-<app>.yaml\` | \`application-api.yaml\` | \`argoapp.yaml\` |"
+      ;;
+  esac
+  case "$CONTAINER_ORCH" in
+    ECS|AKS+ECS)
+      echo "| ECS Task Definition | \`task-definition-<app>.json\` | \`task-definition-api.json\` | \`taskdef.json\`, \`td.json\` |"
+      echo "| ECS Service | \`service-<app>.json\` (CloudFormation/Terraform) | \`service-api.json\` | \`ecs-svc.json\` |"
+      ;;
+  esac
+  echo "| Shell scripts | \`kebab-case.sh\` | \`deploy-prod.sh\` | \`deployProd.sh\`, \`deploy_prod.sh\` |"
+  case "$CICD" in
+    "GitHub Actions")
+      echo "| GitHub Actions workflow | \`.github/workflows/<nome>.yml\` | \`.github/workflows/deploy.yml\` | \`deploy.yaml\` (GitHub usa .yml) |"
+      ;;
+    "GitLab CI")
+      echo "| GitLab CI | \`.gitlab-ci.yml\` na raiz | \`.gitlab-ci.yml\` | \`gitlab-ci.yaml\` |"
+      ;;
+  esac
+  echo ""
+  echo "### Extensões"
+  echo ""
+  case "$CICD" in
+    "Azure Pipelines")
+      echo "- YAML para K8s/Azure Pipelines: sempre \`.yaml\` (NUNCA \`.yml\`)"
+      ;;
+    "GitHub Actions")
+      echo "- GitHub Actions: sempre \`.yml\` (padrão do GitHub)"
+      echo "- YAML para K8s manifests: sempre \`.yaml\`"
+      ;;
+    "GitLab CI")
+      echo "- GitLab CI: \`.gitlab-ci.yml\` (padrão do GitLab)"
+      echo "- YAML para K8s manifests: sempre \`.yaml\`"
+      ;;
+    *)
+      echo "- YAML para K8s manifests: sempre \`.yaml\`"
+      ;;
+  esac
+  echo "- JSON: \`.json\`"
+  echo "- Shell: \`.sh\`"
+  echo "- Terraform: \`.tf\`"
+  echo ""
+} >> "$AGENTS_MD"
+
+# ── References (se habilitado) ──
+if [[ "$USE_REFS" == "Sim" ]]; then
+  {
+    echo "## 📁 Configs de referência (references/)"
+    echo ""
+    echo "O diretório \`references/\` contém arquivos REAIS do seu ambiente."
+    echo "ANTES de criar qualquer pipeline, manifest ou task-definition:"
+    echo ""
+    echo "1. **LEIA** o arquivo de referência correspondente em \`references/\`"
+    echo "2. **USE** a mesma estrutura, naming, e padrões"
+    echo "3. **ADAPTE** apenas os valores específicos da nova app"
+    echo "4. **NÃO** invente padrões — copie do reference"
+    echo ""
+    echo "Se o reference estiver vazio (só .gitkeep), use o template da skill."
+    echo ""
+  } >> "$AGENTS_MD"
+fi
+
+# ── Pre-flight check obrigatório ──
+{
+  echo "## ⛔ Pre-flight check (OBRIGATÓRIO antes de criar/editar arquivo)"
+  echo ""
+  echo "ANTES de criar ou modificar qualquer arquivo de infra, execute mentalmente:"
+  echo ""
+  echo "1. O nome segue a tabela de Naming Conventions acima?"
+  echo "2. A extensão está correta (\`.yaml\` e não \`.yml\`)?"
+  echo "3. O caminho está correto (não criar arquivo no lugar errado)?"
+  echo "4. Existe um reference em \`references/\`? Se sim, segui o padrão dele?"
+  echo "5. Estou usando template da skill ou escrevendo do zero? (NUNCA do zero)"
+  echo ""
+  echo "Se QUALQUER resposta for NÃO → PARE, corrija, e só então prossiga."
   echo ""
 } >> "$AGENTS_MD"
 
@@ -772,14 +959,17 @@ echo "${GREEN}╔═════════════════════
 echo "${GREEN}║           Setup concluído!           ║${NC}"
 echo "${GREEN}╚══════════════════════════════════════╝${NC}"
 echo ""
-echo "  Escopo:    $SCOPE"
-echo "  Destino:   $TARGET"
-echo "  Config:    $CONFIG_FILE"
-echo "  Agentes:   ${agents_sel[*]}"
-echo "  Default:   $default_agent"
-echo "  Skills:    ${installed_skills[*]:-nenhuma}"
-echo "  Commands:  ${installed_commands[*]:-nenhum}"
-echo "  Modelos:   planner=$MODEL_PLANNER | executor=$MODEL_EXECUTOR | reviewer=$MODEL_REVIEWER"
+echo "  Escopo:       $SCOPE"
+echo "  Destino:      $TARGET"
+echo "  Config:       $CONFIG_FILE"
+echo "  Agentes:      ${agents_sel[*]}"
+echo "  Default:      $default_agent"
+echo "  Container:    $CONTAINER_ORCH"
+echo "  Skills:       ${installed_skills[*]:-nenhuma}"
+echo "  Commands:     ${installed_commands[*]:-nenhum}"
+echo "  References:   ${USE_REFS}"
+echo "  Plugin:       validate-naming"
+echo "  Modelos:      planner=$MODEL_PLANNER | executor=$MODEL_EXECUTOR | reviewer=$MODEL_REVIEWER"
 echo ""
 echo "${YELLOW}Dica:${NC} se o modelo der erro ou carregar outro, confirme os IDs com: ${GREEN}opencode models opencode${NC}"
 echo ""

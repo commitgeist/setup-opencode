@@ -24,8 +24,17 @@ drena as antigas.
 
 ## Workflow OBRIGATÓRIO para deploy
 
+### Passo 0 — Pre-flight (ANTES de tudo)
+1. **Confira naming**: o arquivo segue o padrão `task-definition-<app>.json`?
+   Se não → PARE e corrija.
+2. **Reference existe?** Verifique `references/ecs/` — se houver
+   um arquivo de referência (task-definition real, service real), USE como base.
+3. **Não escreva JSON do zero** — use template OU reference.
+4. **CPU/Memory**: confirme que é uma combinação Fargate válida.
+
 ### Passo 1 — Task definition a partir do template
-Copie `./.opencode/skills/ecs-deploy/templates/task-definition.json`
+**Se existe reference em `references/ecs/`**: use-o como base.
+**Se não**: copie `./.opencode/skills/ecs-deploy/templates/task-definition.json`
 e substitua os placeholders:
 - `__APP__`, `__IMAGE__` (tag exata), `__PORT__`
 - `__CPU__` / `__MEMORY__` (combinações válidas Fargate:

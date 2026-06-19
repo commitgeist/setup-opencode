@@ -7,6 +7,13 @@ description: >
 
 # Azure Pipelines → AWS via OIDC
 
+## Pre-flight (ANTES de criar/editar pipeline)
+
+1. **Nome do arquivo**: DEVE ser `.azure-pipelines.yaml` (NUNCA `azure-pipelines.yml` ou outra variação)
+2. **Reference existe?** Verifique `references/pipeline/` — se houver uma pipeline real, USE como base.
+3. **Extensão**: `.yaml` (NUNCA `.yml`)
+4. **Não escreva pipeline do zero** — use reference ou template desta skill.
+
 ## Por que OIDC
 
 Sem access keys long-lived: a pipeline troca um token OIDC do Azure

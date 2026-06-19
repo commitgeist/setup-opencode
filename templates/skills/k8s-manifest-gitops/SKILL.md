@@ -16,8 +16,18 @@ Permitido em produção: get, describe, logs, diff (read-only).
 
 ## Workflow OBRIGATÓRIO
 
+### Passo 0 — Pre-flight (ANTES de tudo)
+1. **Confira naming**: o arquivo segue o padrão `<tipo>-<app>.yaml`?
+   (ex: `deployment-api.yaml`, `service-api.yaml`, `ingress-api.yaml`)
+   Se não → PARE e corrija.
+2. **Extensão**: `.yaml` (NUNCA `.yml`)
+3. **Reference existe?** Verifique `references/k8s-manifests/` — se houver
+   um arquivo de referência, USE como base ao invés do template genérico.
+4. **Não escreva YAML do zero** — use template OU reference.
+
 ### Passo 1 — Criar a partir do template (NÃO escrever YAML do zero)
-Copie `./.opencode/skills/k8s-manifest-gitops/templates/deployment.yaml`
+**Se existe reference em `references/k8s-manifests/`**: use-o como base.
+**Se não**: copie `./.opencode/skills/k8s-manifest-gitops/templates/deployment.yaml`
 para o destino e substitua os placeholders:
 - `__APP__` → nome do app (lowercase, kebab-case)
 - `__NAMESPACE__` → namespace
