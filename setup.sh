@@ -448,18 +448,20 @@ fi
 # 7c. PLUGIN DE VALIDAÇÃO DE NAMING
 # ═════════════════════════════════════════════════════════
 echo ""
-info "Instalando plugin de validação ..."
+info "Instalando plugins ..."
 if [[ "$SCOPE" == "global" ]]; then
   PLUGINS_DIR="$TARGET/plugins"
 else
   PLUGINS_DIR="$TARGET/.opencode/plugins"
 fi
 mkdir -p "$PLUGINS_DIR"
-if [[ -f "$TPL_DIR/plugins/validate-naming.ts" ]]; then
-  backup_if_exists "$PLUGINS_DIR/validate-naming.ts"
-  cp "$TPL_DIR/plugins/validate-naming.ts" "$PLUGINS_DIR/validate-naming.ts"
-  ok "plugin: validate-naming"
-fi
+for plugin_file in "$TPL_DIR/plugins/"*.ts; do
+  [[ -e "$plugin_file" ]] || continue
+  pbase="$(basename "$plugin_file")"
+  backup_if_exists "$PLUGINS_DIR/$pbase"
+  cp "$plugin_file" "$PLUGINS_DIR/$pbase"
+  ok "plugin: ${pbase%.ts}"
+done
 
 # ═════════════════════════════════════════════════════════
 # 8. DOCS/ADR (apenas escopo local)
@@ -705,6 +707,43 @@ fi
 } >> "$AGENTS_MD"
 
 cat <<'FTR' >> "$AGENTS_MD"
+## ⛔ Protocolo de Ordem de Execução (ENFORCED por plugin)
+
+A ordem abaixo é OBRIGATÓRIA. O plugin `enforce-workflow-order` BLOQUEIA
+qualquer tentativa de pular etapas.
+
+```
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────┐     ┌─────┐
+│ 1. ARCHITECT│────▶│ 2. HUMANO    │────▶│ 3. ENGINEER  │────▶│4. REVIEWER│────▶│5. PR│
+│ gera ADR    │     │ revisa/aprova│     │ implementa   │     │ valida   │     │     │
+└─────────────┘     └──────────────┘     └──────────────┘     └──────────┘     └─────┘
+      │                    │                     │                    │
+      ▼                    ▼                     ▼                    ▼
+  docs/adr/           Status:              Cada arquivo          Roda scripts
+  NNNN-*.md           Approved             tem comentário:       de validação
+                                           # ADR: docs/adr/...
+```
+
+### Gates (não pode prosseguir sem passar)
+
+| Gate | Condição | Quem verifica |
+|---|---|---|
+| ADR existe | `docs/adr/NNNN-*.md` com status Approved | devops-engineer (manual) |
+| Plano apresentado | Primeira resposta é plano, sem tools | devops-engineer (agent template) |
+| Humano confirmou | Humano respondeu "sim" / "prossiga" | devops-engineer (agent template) |
+| Rastreabilidade | Cada arquivo de infra tem `# ADR: ...` | plugin enforce-workflow-order |
+| Validação passou | Scripts de validação sem erro | devops-engineer + @reviewer |
+
+### Exceção: tarefas triviais
+
+Tarefas que NÃO precisam de ADR (mas precisam de confirmação humana):
+- Fix de typo em valor de config
+- Ajuste de réplicas/recursos
+- Atualização de image tag
+
+Nestes casos, o comentário de rastreabilidade deve ser:
+`# Confirmed: <descrição curta da tarefa>`
+
 ## Regras invioláveis
 
 - **GitOps**: mudanças K8s via commit nos repos de manifests; PROIBIDO `kubectl apply/patch` direto em produção
@@ -968,7 +1007,7 @@ echo "  Container:    $CONTAINER_ORCH"
 echo "  Skills:       ${installed_skills[*]:-nenhuma}"
 echo "  Commands:     ${installed_commands[*]:-nenhum}"
 echo "  References:   ${USE_REFS}"
-echo "  Plugin:       validate-naming"
+echo "  Plugins:      validate-naming, enforce-workflow-order"
 echo "  Modelos:      planner=$MODEL_PLANNER | executor=$MODEL_EXECUTOR | reviewer=$MODEL_REVIEWER"
 echo ""
 echo "${YELLOW}Dica:${NC} se o modelo der erro ou carregar outro, confirme os IDs com: ${GREEN}opencode models opencode${NC}"
