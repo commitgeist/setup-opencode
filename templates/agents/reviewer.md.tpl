@@ -12,6 +12,7 @@ tools:
   bash: true
 permission:
   bash:
+    "*": deny
     "terraform plan*": allow
     "terraform validate*": allow
     "terraform fmt*": allow
@@ -31,7 +32,6 @@ permission:
     "git show*": allow
     "ls*": allow
     "cat*": allow
-    "*": deny
 ---
 
 # ROLE

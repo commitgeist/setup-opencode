@@ -141,9 +141,16 @@ Adicione no `opencode.json` (local) ou `~/.config/opencode/opencode.jsonc` (glob
 
 ---
 
-## Dicas rápidas
+## Sessões & aliases
 
-- **Plan mode** (Tab) antes de Build mode para análises read-only
+- **Assunto novo** → `/new` (alias `/clear`, atalho `Ctrl+X N`)
+- **Mesma tarefa, contexto gigante** → `/compact` (alias `/summarize`, `Ctrl+X C`)
+- **Voltar a uma sessão** → `/sessions` (aliases `/resume`, `/continue`, `Ctrl+X L`)
+- **Desfazer / refazer** → `/undo` / `/redo`
+- Regra: rolou muito pra achar o começo? `/new` (assunto novo) ou `/compact` (mesma tarefa)
+- Aliases próprios: commands em `.opencode/command/*.md`; no shell `alias oc='opencode'`
+
+## Dicas rápidas
 - **Skills** carregam contexto sob demanda — são o manual do agente
 - **Scripts de validação** nas skills rodam checagens automatizadas
 - **Commands** (`/new-adr`, `/validate-all`) são atalhos para workflows comuns

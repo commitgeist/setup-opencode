@@ -11,6 +11,7 @@ tools:
   bash: true
 permission:
   bash:
+    "*": deny
     "kubectl get*": allow
     "kubectl describe*": allow
     "kubectl logs*": allow
@@ -29,7 +30,6 @@ permission:
     "ls*": allow
     "cat*": allow
     "grep*": allow
-    "*": deny
 ---
 
 # ROLE

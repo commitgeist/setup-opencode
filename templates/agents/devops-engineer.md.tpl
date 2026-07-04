@@ -12,6 +12,7 @@ tools:
   bash: true
 permission:
   bash:
+    "*": allow
     "terraform plan*": allow
     "terraform apply*": ask
     "terraform destroy*": deny
@@ -30,7 +31,6 @@ permission:
     "git push origin master": deny
     "git push*": ask
     "rm -rf /*": deny
-    "*": allow
 ---
 
 # ROLE

@@ -12,11 +12,11 @@ tools:
   bash: false
 permission:
   write:
-    "docs/adr/*": allow
     "*": deny
+    "docs/adr/*": allow
   edit:
-    "docs/adr/*": allow
     "*": deny
+    "docs/adr/*": allow
   bash: deny
 ---
 

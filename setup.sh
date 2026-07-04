@@ -262,15 +262,21 @@ if (( ! NON_INTERACTIVE )); then
   echo "" >&2
 fi
 
-MODEL_TIER="$(pick MODEL_TIER "Como você acessa modelos?" "free-zen,free-openrouter,free-ollama,anthropic,openai,custom")"
+MODEL_TIER="$(pick MODEL_TIER "Como você acessa modelos?" "free-zen,multi-provider,free-openrouter,free-ollama,anthropic,openai,custom")"
 
 model_note=""
 case "$MODEL_TIER" in
   free-zen)
-    def_planner="opencode/kimi-k2.5-free"
-    def_executor="opencode/glm-4.7-flash"
-    def_reviewer="opencode/glm-4.7-flash"
-    model_note="Zen free: rode /connect e depois /models no TUI para confirmar os IDs free atuais (mudam com o tempo). Atenção: alguns modelos free usam seus dados para treino — não use com código sensível de cliente."
+    def_planner="opencode/nemotron-3-ultra-free"
+    def_executor="opencode/deepseek-v4-flash-free"
+    def_reviewer="groq/llama-3.1-8b-instant"
+    model_note="Zen free turbinado: Nemotron-3 Ultra (architect) + DeepSeek V4 Flash (engineer), ambos free no Zen. REVIEWER usa Groq llama-3.1-8b-instant (ultrarrápido e free, mas exige uma API key gratuita do Groq). Rode /models no TUI para confirmar os IDs. Modelos free podem usar seus dados para treino — não use com código sensível de cliente. Veja MODELS.md."
+    ;;
+  multi-provider)
+    def_planner="github-models/openai/o3"
+    def_executor="nvidia/qwen/qwen3-coder-480b-a35b-instruct"
+    def_reviewer="groq/llama-3.1-8b-instant"
+    model_note="Multi-provider (mais força, ainda free): o3 (GitHub Models) para planejamento, Qwen3 Coder 480B (Nvidia) para execução, Groq llama-3.1-8b-instant para review. Exige conta/credencial gratuita de cada provider. Veja MODELS.md."
     ;;
   free-openrouter)
     def_planner="openrouter/deepseek/deepseek-r1:free"

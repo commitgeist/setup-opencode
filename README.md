@@ -563,12 +563,40 @@ checkpoints, scripts prontos (`scripts/validate.sh`) e templates com
 placeholders. O modelo segue trilho em vez de improvisar — é o que
 mantém modelo gratuito utilizável em tarefa real.
 
+## Sessões & aliases
+
+Contexto longo demais deixa o modelo mais lento, mais caro e mais propenso a se
+perder. Não acumule tudo num chat só — troque de sessão ao mudar de tarefa.
+
+| Situação | O que fazer |
+|---|---|
+| Assunto novo / outra tarefa | `/new` (alias `/clear`, atalho `Ctrl+X N`) |
+| Mesma tarefa, contexto gigante | `/compact` (alias `/summarize`, `Ctrl+X C`) resume e segue |
+| Voltar a uma sessão anterior | `/sessions` (aliases `/resume`, `/continue`, `Ctrl+X L`) |
+| Desfazer / refazer o último turno | `/undo` / `/redo` |
+
+Regra prática: se você precisa rolar muito pra achar o começo da conversa, é hora
+de `/new` (assunto novo) ou `/compact` (mesma tarefa).
+
+**Aliases:** no TUI, os **commands** (`/nome`) são seus atalhos — este setup já
+instala alguns; crie outros em `.opencode/command/*.md`. No shell:
+
+```bash
+alias oc='opencode'
+alias ocr='opencode run'   # one-shot, sem abrir o TUI
+```
+
 ## Modelos free
 
-O wizard tem presets: `free-zen` (OpenCode Zen), `free-openrouter`,
-`free-ollama` (local/privado), além de anthropic/openai/custom.
+O wizard tem presets: `free-zen` (OpenCode Zen turbinado), `multi-provider`
+(mais força, ainda free), `free-openrouter`, `free-ollama` (local/privado),
+além de anthropic/openai/custom.
 Os IDs free mudam com o tempo — **confirme com `/models` no TUI** e
 ajuste no frontmatter de `agents/*.md` se necessário.
+
+> 📖 **Guia completo de modelos por papel** (melhores opções, presets prontos
+> para `answers.env`, joias escondidas e o que ignorar): veja
+> [MODELS.md](MODELS.md).
 
 > ⚠️ Modelos free de provedores cloud podem usar seus dados para treino.
 > Não use com código sensível de cliente; para isso, `free-ollama` (local).
