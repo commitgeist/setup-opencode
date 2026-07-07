@@ -45,6 +45,7 @@ run_setup() {
   run_setup
   [ -f .opencode/agents/architect.md ]
   [ -f .opencode/agents/devops-engineer.md ]
+  [ -f .opencode/agents/developer.md ]
   [ -f .opencode/agents/reviewer.md ]
   grep -q "model: opencode/kimi-k2.5-free" .opencode/agents/architect.md
   ! grep -q "{{MODEL}}" .opencode/agents/architect.md

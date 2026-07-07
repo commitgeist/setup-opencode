@@ -317,7 +317,7 @@ MODEL_REVIEWER="$(ask MODEL_REVIEWER "Modelo do REVIEWER/SUPORTE (mais leve)" "$
 # ═════════════════════════════════════════════════════════
 echo ""; echo "${YELLOW}--- Agentes (papéis) ---${NC}"
 agents_sel=()
-multiselect AGENTS "Quais agentes instalar?" "architect,devops-engineer,reviewer,suporte" agents_sel
+multiselect AGENTS "Quais agentes instalar?" "architect,devops-engineer,developer,reviewer,suporte" agents_sel
 if (( ${#agents_sel[@]} == 0 )); then
   agents_sel=(architect devops-engineer reviewer)
   info "Nenhum selecionado — instalando trio padrão: architect, devops-engineer, reviewer"
@@ -327,7 +327,7 @@ fi
 default_agent=""
 for a in "${agents_sel[@]}"; do
   case "$a" in
-    architect|devops-engineer|suporte) default_agent="$a"; break ;;
+    architect|devops-engineer|developer|suporte) default_agent="$a"; break ;;
   esac
 done
 if [[ -z "$default_agent" ]]; then
@@ -355,6 +355,7 @@ install_agent() { # nome modelo
 for a in "${agents_sel[@]}"; do
   case "$a" in
     architect)        install_agent architect "$MODEL_PLANNER" ;;
+    developer)        install_agent developer "$MODEL_EXECUTOR" ;;
     devops-engineer)  install_agent devops-engineer "$MODEL_EXECUTOR" ;;
     reviewer)         install_agent reviewer "$MODEL_REVIEWER" ;;
     suporte)          install_agent suporte "$MODEL_REVIEWER" ;;
@@ -574,7 +575,8 @@ HDR
   for a in "${agents_sel[@]}"; do
     case "$a" in
       architect)       printf -- '- `@architect` — planeja e gera ADRs em docs/adr/ (nunca implementa)\n' ;;
-      devops-engineer) printf -- '- `@devops-engineer` — implementa ADRs aprovados\n' ;;
+      devops-engineer) printf -- '- `@devops-engineer` — implementa ADRs aprovados (infra/IaC/GitOps)\n' ;;
+      developer)       printf -- '- `@developer` — escreve código/automação (scripts, tools, operators, lambdas); infra é do devops-engineer\n' ;;
       reviewer)        printf -- '- `@reviewer` — valida implementação contra o ADR (read-only, subagent)\n' ;;
       suporte)         printf -- '- `@suporte` — diagnóstico read-only de incidentes\n' ;;
     esac
